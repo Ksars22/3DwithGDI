@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <Windows.h>
 
 
 struct vec3 {
@@ -9,6 +10,8 @@ struct vec3 {
 
 struct triangle {
 	vec3 p[3];
+
+	int col;
 };
 
 struct Mesh {

@@ -24,7 +24,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	wc.hInstance = hInstance;
 	wc.lpszClassName = class_name;
 
-
 	RegisterClass(&wc);
 
 	HWND hwnd = CreateWindowEx(
@@ -46,9 +45,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	{
 		return 0;
 	}
-	firstCube.mCube.LoadFromObjectFile("C:/Users/13179/Desktop/videoShip.obj");
+	firstCube.mCube.LoadFromObjectFile("C:/Users/13179/Desktop/objects/videoShip.obj");
 
-	SetTimer(hwnd, IDT_TIMER_1, 30, NULL);
+	SetTimer(hwnd, IDT_TIMER_1, 100, NULL);
 	ShowWindow(hwnd, nCmdShow);
 	MSG msg = { };
 	running = true;
@@ -65,23 +64,38 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	RECT client;
-	GetClientRect(hwnd, &client);
-
 	switch (uMsg)
 	{
+
 	case WM_TIMER:
 		switch (wParam)
 		{
 		case IDT_TIMER_1:
+			std::vector<HBRUSH> brushes = {};
+			RECT client;
+			GetClientRect(hwnd, &client);
+			HBRUSH black = CreateSolidBrush(RGB(0, 0, 0));
+			brushes.push_back(black);
+			HBRUSH white = CreateSolidBrush(RGB(255, 255, 255));
+			brushes.push_back(white);
+			HBRUSH darkgrey = CreateSolidBrush(RGB(40, 40, 40));
+			brushes.push_back(darkgrey);
+			HBRUSH lightgrey = CreateSolidBrush(RGB(50, 50, 50));
+			brushes.push_back(darkgrey);
+			HBRUSH lightergrey = CreateSolidBrush(RGB(60, 60, 60));
+			brushes.push_back(darkgrey);
+			HBRUSH a = CreateSolidBrush(RGB(70, 70, 70));
+			brushes.push_back(a);
+			HBRUSH f = CreateSolidBrush(RGB(120, 120, 120));
+			brushes.push_back(f);
+			HBRUSH cblack = CreateSolidBrush(RGB(10, 10, 10));
+			brushes.push_back(cblack);
 
 			HDC hdc = GetDC(hwnd);
-			SelectObject(hdc, GetStockObject(2));
-
-			FillRect(hdc, &client, (HBRUSH)(COLOR_WINDOW + 1)); //fill the screen black
+			FillRect(hdc, &client, black); //fill the screen black
+			//SelectObject(hdc, GetStockObject(2));
 			mat4x4 rotZ, rotX;
 			theta += .1;
-
 			// rotation matrix Z
 			rotZ.m[0][0] = cosf(theta);
 			rotZ.m[0][1] = sinf(theta);
@@ -136,10 +150,21 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 				if (normal.x * (triTranslated.p[0].x - camera.x) + normal.y * (triTranslated.p[0].y - camera.y) + normal.z * (triTranslated.p[0].z - camera.z) < 0.0f)
 				{
+
+					vec3 lightDirection = { 0.0f, 0.0f , -1.0f };
+					float l = sqrtf(lightDirection.x*lightDirection.x + lightDirection.y*lightDirection.y + lightDirection.z*lightDirection.z);
+					lightDirection.x /= 1; lightDirection.y /= 1; lightDirection.z /= 1;
+
+					float dotProduct = normal.x * lightDirection.x + normal.y * lightDirection.y + normal.z * lightDirection.z;
+
+					int color = GetColor(dotProduct);
+					triTranslated.col = color;
+
 					// Project 3D -> 2D
 					MultiplyMatrixVector(triTranslated.p[0], triProjected.p[0], projectionMat.projectionMatrix);
 					MultiplyMatrixVector(triTranslated.p[1], triProjected.p[1], projectionMat.projectionMatrix);
 					MultiplyMatrixVector(triTranslated.p[2], triProjected.p[2], projectionMat.projectionMatrix);
+					triProjected.col = triTranslated.col;
 
 					triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
 					triProjected.p[1].x += 1.0f; triProjected.p[1].y += 1.0f;
@@ -167,10 +192,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			for (auto& triProjected : toRaster)
 			{
+				//HBRUSH hbrush = CreateSolidBrush(triProjected.col);
+				SelectObject(hdc, brushes[triProjected.col]);
+				//SetDCBrushColor(hdc, triProjected.col);
 				fillTriangle(hdc, triProjected.p[0].x, triProjected.p[0].y, triProjected.p[1].x, triProjected.p[1].y, triProjected.p[2].x, triProjected.p[2].y);
 			}
-
 			ReleaseDC(hwnd, hdc);
+			for (auto i : brushes)
+			{
+				DeleteObject(i);
+			}
+			DeleteDC(hdc);
 			return 0;
 		}
 		break;
@@ -180,6 +212,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		return 0;
 	}
+	//case WM_ERASEBKGND: return TRUE;
 	return 0;
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
